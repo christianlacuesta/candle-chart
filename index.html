@@ -9,23 +9,36 @@
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      background:#020617;
-      margin:0;
+      background: #020617;
       font-family: system-ui, sans-serif;
-      color:#e5e7eb;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
     }
+
     .header {
-      max-width:1000px;
-      margin:20px auto 0;
-      padding:8px 16px;
-      font-size:14px;
+      flex: 0 0 auto;
+      width: 100%;
+      padding: 8px 16px;
+      font-size: 14px;
+      box-sizing: border-box;
     }
+
+    .chart-wrapper {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
     #chart {
-      width:100%;
-      max-width:1000px;
-      height:600px;
-      margin:10px auto 40px;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
@@ -36,15 +49,18 @@
     <span id="last-updated" style="opacity:.7; margin-left:8px;"></span>
   </div>
 
-  <div id="chart"></div>
+  <div class="chart-wrapper">
+    <div id="chart"></div>
+  </div>
 
   <script>
     // 🔗 Your Cloud Run endpoint
     const API_URL = "YOUR_API_URL_HERE"; 
-    // Example: 
-    // const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app";
+    // Example:
+    // const API_URL = "https://getcandles-xxxxxx.run.app";
 
     let chartInitialized = false;
+    const chartDiv = document.getElementById("chart");
 
     async function loadCandles() {
       try {
@@ -56,14 +72,13 @@
           return;
         }
 
-        // Convert JSON to arrays for Plotly
         const times  = data.map(d => new Date(d.time));
         const opens  = data.map(d => d.open);
         const highs  = data.map(d => d.high);
         const lows   = data.map(d => d.low);
         const closes = data.map(d => d.close);
 
-        // ⭐ Proper candlestick style: thick bodies + visible wicks
+        // ⭐ Proper candlestick style
         const trace = {
           x: times,
           open: opens,
@@ -72,13 +87,11 @@
           close: closes,
           type: "candlestick",
 
-          // GREEN candles (bullish)
           increasing: {
             line: { color: "#22c55e", width: 2 },
             fillcolor: "#22c55e"
           },
 
-          // RED candles (bearish)
           decreasing: {
             line: { color: "#ef4444", width: 2 },
             fillcolor: "#ef4444"
@@ -88,37 +101,44 @@
         };
 
         const layout = {
-          paper_bgcolor:"#020617",
-          plot_bgcolor:"#020617",
-          xaxis:{
-            title:"Time (HH:MM:SS)",
-            tickformat:"%H:%M:%S",
-            rangeslider:{ visible:false },
-            tickfont:{ color:"#e5e7eb" },
-            gridcolor:"#1e293b"
+          autosize: true,
+          paper_bgcolor: "#020617",
+          plot_bgcolor: "#020617",
+
+          xaxis: {
+            title: "Time (HH:MM)",
+            tickformat: "%H:%M",   // ⭐ NO SECONDS
+            rangeslider: { visible: false },
+            tickfont: { color: "#e5e7eb" },
+            gridcolor: "#1e293b"
           },
-          yaxis:{
-            title:"Price",
-            tickfont:{ color:"#e5e7eb" },
-            gridcolor:"#1e293b"
+
+          yaxis: {
+            title: "Price",
+            tickfont: { color: "#e5e7eb" },
+            gridcolor: "#1e293b"
           },
-          margin:{ l:60, r:20, t:40, b:40 },
-          showlegend:false
+
+          margin: { l: 60, r: 20, t: 40, b: 40 },
+          showlegend: false
         };
 
-        const config = { responsive:true, displaylogo:false };
+        const config = {
+          responsive: true,
+          displaylogo: false
+        };
 
         if (!chartInitialized) {
-          Plotly.newPlot("chart", [trace], layout, config);
+          Plotly.newPlot(chartDiv, [trace], layout, config);
           chartInitialized = true;
         } else {
-          Plotly.react("chart", [trace], layout, config);
+          Plotly.react(chartDiv, [trace], layout, config);
         }
 
-        // Update label
+        // Update timestamp
         const last = times[times.length - 1];
         document.getElementById("last-updated").textContent =
-          `· last update: ${last.toLocaleTimeString("en-GB")}`;
+          `· last update: ${last.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 
       } catch (err) {
         console.error("Error fetching candles:", err);
@@ -130,6 +150,9 @@
 
     // 🔁 Auto-update every 1 minute
     setInterval(loadCandles, 60_000);
+
+    // Resize chart on window size change
+    window.addEventListener("resize", () => Plotly.Plots.resize(chartDiv));
   </script>
 </body>
 </html>
