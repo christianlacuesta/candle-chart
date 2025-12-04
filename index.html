@@ -5,14 +5,14 @@
   <title>BTC Candles – BigQuery Live</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Plotly.js for candlestick chart -->
+  <!-- Plotly.js -->
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
   <style>
     body {
       background:#020617;
       margin:0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, sans-serif;
       color:#e5e7eb;
     }
     .header {
@@ -33,13 +33,16 @@
 <body>
   <div class="header">
     BTC Candlestick Chart – BigQuery → Cloud Run → GitHub Pages
-    <span id="last-updated" style="opacity:.8; margin-left:8px;"></span>
+    <span id="last-updated" style="opacity:.7; margin-left:8px;"></span>
   </div>
+
   <div id="chart"></div>
 
   <script>
-    // 🔗 Your Cloud Run function URL
-    const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app"; // <-- put YOUR URL here
+    // 🔗 Your Cloud Run endpoint
+    const API_URL = "YOUR_API_URL_HERE"; 
+    // Example: 
+    // const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app";
 
     let chartInitialized = false;
 
@@ -49,17 +52,18 @@
         const data = await res.json();
 
         if (!Array.isArray(data) || data.length === 0) {
-          console.warn("No data from API");
+          console.warn("No data returned from API");
           return;
         }
 
-        // Convert API JSON to arrays for Plotly
+        // Convert JSON to arrays for Plotly
         const times  = data.map(d => new Date(d.time));
         const opens  = data.map(d => d.open);
         const highs  = data.map(d => d.high);
         const lows   = data.map(d => d.low);
         const closes = data.map(d => d.close);
 
+        // ⭐ Proper candlestick style: thick bodies + visible wicks
         const trace = {
           x: times,
           open: opens,
@@ -67,8 +71,19 @@
           low: lows,
           close: closes,
           type: "candlestick",
-          increasing: { line: { color: "#22c55e" } },
-          decreasing: { line: { color: "#ef4444" } },
+
+          // GREEN candles (bullish)
+          increasing: {
+            line: { color: "#22c55e", width: 2 },
+            fillcolor: "#22c55e"
+          },
+
+          // RED candles (bearish)
+          decreasing: {
+            line: { color: "#ef4444", width: 2 },
+            fillcolor: "#ef4444"
+          },
+
           name: "BTC"
         };
 
@@ -77,7 +92,7 @@
           plot_bgcolor:"#020617",
           xaxis:{
             title:"Time (HH:MM:SS)",
-            tickformat:"%H:%M:%S",   // military time only
+            tickformat:"%H:%M:%S",
             rangeslider:{ visible:false },
             tickfont:{ color:"#e5e7eb" },
             gridcolor:"#1e293b"
@@ -97,23 +112,23 @@
           Plotly.newPlot("chart", [trace], layout, config);
           chartInitialized = true;
         } else {
-          // Update without recreating the chart
           Plotly.react("chart", [trace], layout, config);
         }
 
-        // Update "last updated" label
+        // Update label
         const last = times[times.length - 1];
         document.getElementById("last-updated").textContent =
           `· last update: ${last.toLocaleTimeString("en-GB")}`;
+
       } catch (err) {
-        console.error("Error loading candles:", err);
+        console.error("Error fetching candles:", err);
       }
     }
 
     // Initial load
     loadCandles();
 
-    // Refresh every 1 minute (60,000 ms)
+    // 🔁 Auto-update every 1 minute
     setInterval(loadCandles, 60_000);
   </script>
 </body>
