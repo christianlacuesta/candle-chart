@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BTC Candlestick Chart</title>
+  <title>Candlestick Chart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Lightweight Charts library -->
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <!-- Plotly.js from CDN -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
   <style>
     html, body {
@@ -15,84 +15,88 @@
       height: 100%;
       background: #020617;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #e5e7eb;
     }
 
-    #chart-container {
+    .header {
+      max-width: 1000px;
+      margin: 20px auto 0;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+
+    #chart {
       width: 100%;
       max-width: 1000px;
       height: 600px;
-      margin: 40px auto;
-      background: #0b1120;
+      margin: 0 auto 40px;
       border-radius: 12px;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+      background: #020617;
     }
   </style>
 </head>
 <body>
-  <div style="color: white; padding: 8px; font-size: 14px;">
-    Candle Chart v3 (GitHub Pages test)
+  <div class="header">
+    Candle Chart v1 - Plotly.js (no TradingView)
   </div>
-  <div id="chart-container"></div>
+  <div id="chart"></div>
 
   <script>
-    // Make sure the library is loaded
-    console.log("LightweightCharts in window:", typeof LightweightCharts);
+    // Example time and OHLC data
+    // Replace these arrays with your real data
+    const times = [
+      "2024-12-01T00:00:00",
+      "2024-12-02T00:00:00",
+      "2024-12-03T00:00:00",
+      "2024-12-04T00:00:00",
+      "2024-12-05T00:00:00",
+      "2024-12-06T00:00:00",
+      "2024-12-07T00:00:00"
+    ];
 
-    window.addEventListener("load", function () {
-      const container = document.getElementById("chart-container");
+    const opens =  [38000, 38250, 38800, 39200, 39550, 39700, 40150];
+    const highs =  [38500, 39000, 39500, 39800, 40000, 40300, 40800];
+    const lows =   [37500, 38000, 38600, 38900, 39300, 39400, 39900];
+    const closes = [38250, 38800, 39200, 39550, 39700, 40150, 40500];
 
-      // Important: do NOT name this variable just "chart" if you have some other "chart" in the page
-      const lcChart = LightweightCharts.createChart(container, {
-        width: container.clientWidth,
-        height: container.clientHeight,
-        layout: {
-          background: { color: "#0b1120" },
-          textColor: "#e5e7eb",
-        },
-        grid: {
-          vertLines: { color: "#1e293b" },
-          horzLines: { color: "#1e293b" },
-        },
-        rightPriceScale: {
-          borderColor: "#334155",
-        },
-        timeScale: {
-          borderColor: "#334155",
-          timeVisible: true,
-          secondsVisible: false,
-        },
-      });
+    const trace = {
+      x: times,
+      open: opens,
+      high: highs,
+      low: lows,
+      close: closes,
+      type: "candlestick",
+      increasing: { line: { color: "#22c55e" } },
+      decreasing: { line: { color: "#ef4444" } },
+      name: "Sample asset"
+    };
 
-      // Now call addCandlestickSeries on lcChart (not on a DOM element)
-      const candleSeries = lcChart.addCandlestickSeries({
-        upColor: "#22c55e",
-        downColor: "#ef4444",
-        borderUpColor: "#22c55e",
-        borderDownColor: "#ef4444",
-        wickUpColor: "#22c55e",
-        wickDownColor: "#ef4444",
-      });
+    const layout = {
+      paper_bgcolor: "#020617",
+      plot_bgcolor: "#020617",
+      xaxis: {
+        title: "Time",
+        rangeslider: { visible: false },
+        showgrid: true,
+        gridcolor: "#1e293b",
+        tickfont: { color: "#e5e7eb" },
+        titlefont: { color: "#e5e7eb" }
+      },
+      yaxis: {
+        title: "Price",
+        showgrid: true,
+        gridcolor: "#1e293b",
+        tickfont: { color: "#e5e7eb" },
+        titlefont: { color: "#e5e7eb" }
+      },
+      margin: { l: 60, r: 20, t: 40, b: 40 },
+      showlegend: false
+    };
 
-      // Example static data
-      const data = [
-        { time: "2024-11-25", open: 38000, high: 38500, low: 37500, close: 38250 },
-        { time: "2024-11-26", open: 38250, high: 39000, low: 38000, close: 38800 },
-        { time: "2024-11-27", open: 38800, high: 39500, low: 38600, close: 39200 },
-        { time: "2024-11-28", open: 39200, high: 39800, low: 38900, close: 39550 },
-        { time: "2024-11-29", open: 39550, high: 40000, low: 39300, close: 39700 },
-        { time: "2024-11-30", open: 39700, high: 40300, low: 39400, close: 40150 },
-        { time: "2024-12-01", open: 40150, high: 40800, low: 39900, close: 40500 },
-      ];
-
-      candleSeries.setData(data);
-
-      // Responsive resize
-      window.addEventListener("resize", function () {
-        lcChart.applyOptions({
-          width: container.clientWidth,
-          height: container.clientHeight,
-        });
-      });
+    // Render chart
+    Plotly.newPlot("chart", [trace], layout, {
+      responsive: true,
+      displaylogo: false
     });
   </script>
 </body>
