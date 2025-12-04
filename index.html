@@ -5,7 +5,7 @@
   <title>BTC Candlestick Chart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Lightweight Charts (TradingView) -->
+  <!-- IMPORTANT: Lightweight Charts library (NOT tv.js) -->
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
   <style>
@@ -13,14 +13,14 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #020617; /* dark */
+      background: #020617; /* dark background */
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     #chart-container {
       width: 100%;
       max-width: 1000px;
-      height: 600px;          /* <<< key */
+      height: 600px;         /* give the chart real height */
       margin: 40px auto;
       background: #0b1120;
       border-radius: 12px;
@@ -39,32 +39,34 @@
   </div>
 
   <script>
-    const chart = LightweightCharts.createChart(
-      document.getElementById('chart'),
-      {
-        width: document.getElementById('chart').clientWidth,
-        height: document.getElementById('chart').clientHeight,
-        layout: {
-          background: { color: '#0b1120' },
-          textColor: '#e5e7eb',
-        },
-        grid: {
-          vertLines: { color: '#1f2937' },
-          horzLines: { color: '#1f2937' },
-        },
-        timeScale: {
-          borderColor: '#374151',
-        },
-        rightPriceScale: {
-          borderColor: '#374151',
-        },
-        crosshair: {
-          vertLine: { color: '#ef4444', width: 1 },
-          horzLine: { color: '#ef4444', width: 1 },
-        },
-      },
-    );
+    // Get the container element
+    const chartElement = document.getElementById('chart');
 
+    // Create the chart
+    const chart = LightweightCharts.createChart(chartElement, {
+      width: chartElement.clientWidth,
+      height: chartElement.clientHeight,
+      layout: {
+        background: { color: '#0b1120' },
+        textColor: '#e5e7eb',
+      },
+      grid: {
+        vertLines: { color: '#1f2937' },
+        horzLines: { color: '#1f2937' },
+      },
+      timeScale: {
+        borderColor: '#374151',
+      },
+      rightPriceScale: {
+        borderColor: '#374151',
+      },
+      crosshair: {
+        vertLine: { color: '#ef4444', width: 1 },
+        horzLine: { color: '#ef4444', width: 1 },
+      },
+    });
+
+    // Add candlestick series
     const candleSeries = chart.addCandlestickSeries({
       upColor: '#16a34a',
       downColor: '#ef4444',
@@ -73,7 +75,7 @@
       wickDownColor: '#ef4444',
     });
 
-    // Sample OHLC data
+    // Sample OHLC data – you’ll later replace this with real BTC data
     candleSeries.setData([
       { time: '2024-12-01', open: 38000, high: 39000, low: 37500, close: 38800 },
       { time: '2024-12-02', open: 38800, high: 39500, low: 38200, close: 39200 },
@@ -82,10 +84,12 @@
       { time: '2024-12-05', open: 39950, high: 40500, low: 39700, close: 40100 },
     ]);
 
-    // Handle resize (optional but nice)
+    // Make chart responsive
     window.addEventListener('resize', () => {
-      const c = document.getElementById('chart');
-      chart.applyOptions({ width: c.clientWidth, height: c.clientHeight });
+      chart.applyOptions({
+        width: chartElement.clientWidth,
+        height: chartElement.clientHeight,
+      });
     });
   </script>
 </body>
