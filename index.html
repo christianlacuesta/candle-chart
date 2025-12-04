@@ -40,6 +40,13 @@
       width: 100%;
       height: 100%;
     }
+
+    .error {
+      color: #f97373;
+      font-size: 12px;
+      opacity: 0.8;
+      margin-left: 8px;
+    }
   </style>
 </head>
 
@@ -47,6 +54,7 @@
   <div class="header">
     BTC Candlestick Chart – BigQuery → Cloud Run → GitHub Pages
     <span id="last-updated" style="opacity:.7; margin-left:8px;"></span>
+    <span id="error-msg" class="error"></span>
   </div>
 
   <div class="chart-wrapper">
@@ -54,21 +62,112 @@
   </div>
 
   <script>
-    // 🔗 Your Cloud Run endpoint
-    const API_URL = "YOUR_API_URL_HERE"; 
+    // 🔗 Your Cloud Run endpoint (MUST be a valid HTTPS URL)
+    const API_URL = "YOUR_API_URL_HERE";
     // Example:
-    // const API_URL = "https://getcandles-xxxxxx.run.app";
+    // const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app";
 
     let chartInitialized = false;
     const chartDiv = document.getElementById("chart");
+    const lastUpdatedSpan = document.getElementById("last-updated");
+    const errorSpan = document.getElementById("error-msg");
+
+    function renderChart(times, opens, highs, lows, closes) {
+      console.log("Rendering chart, candles:", times.length);
+
+      const trace = {
+        x: times,
+        open: opens,
+        high: highs,
+        low: lows,
+        close: closes,
+        type: "candlestick",
+        increasing: {
+          line: { color: "#22c55e", width: 2 },
+          fillcolor: "#22c55e"
+        },
+        decreasing: {
+          line: { color: "#ef4444", width: 2 },
+          fillcolor: "#ef4444"
+        },
+        name: "BTC"
+      };
+
+      const layout = {
+        autosize: true,
+        paper_bgcolor: "#020617",
+        plot_bgcolor: "#020617",
+        xaxis: {
+          title: "Time (HH:MM)",
+          tickformat: "%H:%M",   // ⬅ only HH:MM, no seconds
+          rangeslider: { visible: false },
+          tickfont: { color: "#e5e7eb" },
+          gridcolor: "#1e293b"
+        },
+        yaxis: {
+          title: "Price",
+          tickfont: { color: "#e5e7eb" },
+          gridcolor: "#1e293b"
+        },
+        margin: { l: 60, r: 20, t: 40, b: 40 },
+        showlegend: false
+      };
+
+      const config = {
+        responsive: true,
+        displaylogo: false
+      };
+
+      if (!chartInitialized) {
+        Plotly.newPlot(chartDiv, [trace], layout, config);
+        chartInitialized = true;
+      } else {
+        Plotly.react(chartDiv, [trace], layout, config);
+      }
+    }
+
+    function renderFallbackChart() {
+      console.warn("Using fallback dummy data for chart");
+
+      const now = Date.now();
+      const times = [];
+      for (let i = 0; i < 20; i++) {
+        times.push(new Date(now - (19 - i) * 60000)); // 20 minutes of dummy candles
+      }
+
+      const opens  = [38000,38200,38150,38300,38400,38500,38650,38700,38800,38900,38850,38950,39000,39100,39200,39250,39300,39400,39500,39600];
+      const highs  = opens.map(o => o + 80);
+      const lows   = opens.map(o => o - 80);
+      const closes = opens.map((o, i) => o + (i % 2 === 0 ? 40 : -40));
+
+      renderChart(times, opens, highs, lows, closes);
+      const last = times[times.length - 1];
+      lastUpdatedSpan.textContent =
+        `· fallback data · last: ${last.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+    }
 
     async function loadCandles() {
+      console.log("Fetching candles from:", API_URL);
+      errorSpan.textContent = "";
+
+      if (!API_URL || API_URL === "YOUR_API_URL_HERE") {
+        errorSpan.textContent = "Set API_URL in index.html";
+        renderFallbackChart();
+        return;
+      }
+
       try {
         const res = await fetch(API_URL);
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+
         const data = await res.json();
+        console.log("API response length:", Array.isArray(data) ? data.length : "not array");
 
         if (!Array.isArray(data) || data.length === 0) {
-          console.warn("No data returned from API");
+          errorSpan.textContent = "API returned no data, showing fallback.";
+          renderFallbackChart();
           return;
         }
 
@@ -78,70 +177,16 @@
         const lows   = data.map(d => d.low);
         const closes = data.map(d => d.close);
 
-        // ⭐ Proper candlestick style
-        const trace = {
-          x: times,
-          open: opens,
-          high: highs,
-          low: lows,
-          close: closes,
-          type: "candlestick",
+        renderChart(times, opens, highs, lows, closes);
 
-          increasing: {
-            line: { color: "#22c55e", width: 2 },
-            fillcolor: "#22c55e"
-          },
-
-          decreasing: {
-            line: { color: "#ef4444", width: 2 },
-            fillcolor: "#ef4444"
-          },
-
-          name: "BTC"
-        };
-
-        const layout = {
-          autosize: true,
-          paper_bgcolor: "#020617",
-          plot_bgcolor: "#020617",
-
-          xaxis: {
-            title: "Time (HH:MM)",
-            tickformat: "%H:%M",   // ⭐ NO SECONDS
-            rangeslider: { visible: false },
-            tickfont: { color: "#e5e7eb" },
-            gridcolor: "#1e293b"
-          },
-
-          yaxis: {
-            title: "Price",
-            tickfont: { color: "#e5e7eb" },
-            gridcolor: "#1e293b"
-          },
-
-          margin: { l: 60, r: 20, t: 40, b: 40 },
-          showlegend: false
-        };
-
-        const config = {
-          responsive: true,
-          displaylogo: false
-        };
-
-        if (!chartInitialized) {
-          Plotly.newPlot(chartDiv, [trace], layout, config);
-          chartInitialized = true;
-        } else {
-          Plotly.react(chartDiv, [trace], layout, config);
-        }
-
-        // Update timestamp
         const last = times[times.length - 1];
-        document.getElementById("last-updated").textContent =
+        lastUpdatedSpan.textContent =
           `· last update: ${last.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 
       } catch (err) {
         console.error("Error fetching candles:", err);
+        errorSpan.textContent = "Error loading API, showing fallback.";
+        renderFallbackChart();
       }
     }
 
@@ -151,8 +196,12 @@
     // 🔁 Auto-update every 1 minute
     setInterval(loadCandles, 60_000);
 
-    // Resize chart on window size change
-    window.addEventListener("resize", () => Plotly.Plots.resize(chartDiv));
+    // Resize chart when window changes
+    window.addEventListener("resize", () => {
+      if (chartInitialized) {
+        Plotly.Plots.resize(chartDiv);
+      }
+    });
   </script>
 </body>
 </html>
