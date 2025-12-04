@@ -53,12 +53,15 @@
           return;
         }
 
-        // Convert API JSON to arrays for Plotly
-        const times  = data.map(d => new Date(d.time));
-        const opens  = data.map(d => d.open);
-        const highs  = data.map(d => d.high);
-        const lows   = data.map(d => d.low);
-        const closes = data.map(d => d.close);
+        // 👉 Keep only the last 7 candles
+        const last7 = data.slice(-7);
+
+        // Convert API JSON to arrays for Plotly (using only last 7)
+        const times  = last7.map(d => new Date(d.time));
+        const opens  = last7.map(d => d.open);
+        const highs  = last7.map(d => d.high);
+        const lows   = last7.map(d => d.low);
+        const closes = last7.map(d => d.close);
 
         const trace = {
           x: times,
@@ -76,8 +79,8 @@
           paper_bgcolor:"#020617",
           plot_bgcolor:"#020617",
           xaxis:{
-            title:"Time (HH:MM:SS)",
-            tickformat:"%H:%M:%S",   // military time only
+            title:"Time (HH:MM)",
+            tickformat:"%H:%M",   // 👉 military time, no seconds
             rangeslider:{ visible:false },
             tickfont:{ color:"#e5e7eb" },
             gridcolor:"#1e293b"
@@ -101,10 +104,10 @@
           Plotly.react("chart", [trace], layout, config);
         }
 
-        // Update "last updated" label
+        // Update "last updated" label (HH:MM only)
         const last = times[times.length - 1];
         document.getElementById("last-updated").textContent =
-          `· last update: ${last.toLocaleTimeString("en-GB")}`;
+          `· last update: ${last.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
       } catch (err) {
         console.error("Error loading candles:", err);
       }
