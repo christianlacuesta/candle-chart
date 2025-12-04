@@ -104,10 +104,22 @@
           Plotly.react("chart", [trace], layout, config);
         }
 
-        // Update "last updated" label (HH:MM only)
+        // Update "last update" label: DATE + HH:MM
         const last = times[times.length - 1];
+        const formattedDate =
+          last.toLocaleDateString("en-GB", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          }) +
+          " " +
+          last.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+
         document.getElementById("last-updated").textContent =
-          `· last update: ${last.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+          `· last update: ${formattedDate}`;
       } catch (err) {
         console.error("Error loading candles:", err);
       }
