@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTC Candlestick Chart</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b0f19;
+      color: #eee;
+    }
+    #chart-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #chart {
+      flex: 1;
+    }
+    #controls {
+      padding: 8px 12px;
+      background: #111827;
+      border-top: 1px solid #1f2937;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+    button {
+      background: #1f2937;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart-container">
+    <div id="chart"></div>
+    <div id="controls">
+      <span>Timeframe buttons (optional, not wired yet):</span>
+      <button data-tf="1m">1m</button>
+      <button data-tf="5m">5m</button>
+      <button data-tf="1h">1h</button>
+      <button data-tf="1d">1d</button>
+    </div>
+  </div>
+
+  <!-- Lightweight Charts CDN -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+  <script>
+    const chartElement = document.getElementById('chart');
+
+    const chart = LightweightCharts.createChart(chartElement, {
+      layout: {
+        background: { color: '#0b0f19' },
+        textColor: '#e5e7eb',
+      },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false },
+      grid: {
+        vertLines: { color: '#111827' },
+        horzLines: { color: '#111827' },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Magnet,
+      },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#16a34a',
+      downColor: '#dc2626',
+      borderUpColor: '#16a34a',
+      borderDownColor: '#dc2626',
+      wickUpColor: '#9ca3af',
+      wickDownColor: '#9ca3af',
+    });
+
+    // Make chart responsive
+    const ro = new ResizeObserver(entries => {
+      if (!entries.length) return;
+      const { width, height } = entries[0].contentRect;
+      chart.applyOptions({ width, height });
+      chart.timeScale().fitContent();
+    });
+    ro.observe(chartElement);
+
+    // Load candles from candles.json in this repo
+    async function loadCandles() {
+      try {
+        const res = await fetch('candles.json');
+        const data = await res.json();
+        // Expect: [{ time: 1733203200, open: ..., high: ..., low: ..., close: ... }, ...]
+        candleSeries.setData(data);
+        chart.timeScale().fitContent();
+      } catch (e) {
+        console.error('Failed to load candles.json', e);
+      }
+    }
+
+    loadCandles();
+
+    // (Optional) Timeframe buttons – right now they just log
+    document.querySelectorAll('#controls button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        console.log('Clicked timeframe:', btn.dataset.tf);
+        // Later you could fetch different files like candles_1m.json, candles_5m.json, etc.
+      });
+    });
+  </script>
+</body>
+</html>
