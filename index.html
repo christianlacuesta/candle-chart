@@ -3,120 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <title>BTC Candlestick Chart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Lightweight Charts (TradingView) -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
+      background: #020617; /* dark */
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0b0f19;
-      color: #eee;
     }
+
     #chart-container {
       width: 100%;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      max-width: 1000px;
+      height: 600px;          /* <<< key */
+      margin: 40px auto;
+      background: #0b1120;
+      border-radius: 12px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.5);
     }
+
     #chart {
-      flex: 1;
-    }
-    #controls {
-      padding: 8px 12px;
-      background: #111827;
-      border-top: 1px solid #1f2937;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      font-size: 12px;
-    }
-    button {
-      background: #1f2937;
-      color: #e5e7eb;
-      border: 1px solid #374151;
-      border-radius: 4px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    button:hover {
-      background: #374151;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
   <div id="chart-container">
     <div id="chart"></div>
-    <div id="controls">
-      <span>Timeframe buttons (optional, not wired yet):</span>
-      <button data-tf="1m">1m</button>
-      <button data-tf="5m">5m</button>
-      <button data-tf="1h">1h</button>
-      <button data-tf="1d">1d</button>
-    </div>
   </div>
 
-  <!-- Lightweight Charts CDN -->
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-
   <script>
-    const chartElement = document.getElementById('chart');
-
-    const chart = LightweightCharts.createChart(chartElement, {
-      layout: {
-        background: { color: '#0b0f19' },
-        textColor: '#e5e7eb',
+    const chart = LightweightCharts.createChart(
+      document.getElementById('chart'),
+      {
+        width: document.getElementById('chart').clientWidth,
+        height: document.getElementById('chart').clientHeight,
+        layout: {
+          background: { color: '#0b1120' },
+          textColor: '#e5e7eb',
+        },
+        grid: {
+          vertLines: { color: '#1f2937' },
+          horzLines: { color: '#1f2937' },
+        },
+        timeScale: {
+          borderColor: '#374151',
+        },
+        rightPriceScale: {
+          borderColor: '#374151',
+        },
+        crosshair: {
+          vertLine: { color: '#ef4444', width: 1 },
+          horzLine: { color: '#ef4444', width: 1 },
+        },
       },
-      rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false },
-      grid: {
-        vertLines: { color: '#111827' },
-        horzLines: { color: '#111827' },
-      },
-      crosshair: {
-        mode: LightweightCharts.CrosshairMode.Magnet,
-      },
-    });
+    );
 
     const candleSeries = chart.addCandlestickSeries({
       upColor: '#16a34a',
-      downColor: '#dc2626',
-      borderUpColor: '#16a34a',
-      borderDownColor: '#dc2626',
-      wickUpColor: '#9ca3af',
-      wickDownColor: '#9ca3af',
+      downColor: '#ef4444',
+      borderVisible: false,
+      wickUpColor: '#16a34a',
+      wickDownColor: '#ef4444',
     });
 
-    // Make chart responsive
-    const ro = new ResizeObserver(entries => {
-      if (!entries.length) return;
-      const { width, height } = entries[0].contentRect;
-      chart.applyOptions({ width, height });
-      chart.timeScale().fitContent();
-    });
-    ro.observe(chartElement);
+    // Sample OHLC data
+    candleSeries.setData([
+      { time: '2024-12-01', open: 38000, high: 39000, low: 37500, close: 38800 },
+      { time: '2024-12-02', open: 38800, high: 39500, low: 38200, close: 39200 },
+      { time: '2024-12-03', open: 39200, high: 39800, low: 39000, close: 39100 },
+      { time: '2024-12-04', open: 39100, high: 40000, low: 38900, close: 39950 },
+      { time: '2024-12-05', open: 39950, high: 40500, low: 39700, close: 40100 },
+    ]);
 
-    // Load candles from candles.json in this repo
-    async function loadCandles() {
-      try {
-        const res = await fetch('candles.json');
-        const data = await res.json();
-        // Expect: [{ time: 1733203200, open: ..., high: ..., low: ..., close: ... }, ...]
-        candleSeries.setData(data);
-        chart.timeScale().fitContent();
-      } catch (e) {
-        console.error('Failed to load candles.json', e);
-      }
-    }
-
-    loadCandles();
-
-    // (Optional) Timeframe buttons – right now they just log
-    document.querySelectorAll('#controls button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        console.log('Clicked timeframe:', btn.dataset.tf);
-        // Later you could fetch different files like candles_1m.json, candles_5m.json, etc.
-      });
+    // Handle resize (optional but nice)
+    window.addEventListener('resize', () => {
+      const c = document.getElementById('chart');
+      chart.applyOptions({ width: c.clientWidth, height: c.clientHeight });
     });
   </script>
 </body>
