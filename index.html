@@ -5,7 +5,7 @@
   <title>BTC Candlestick Chart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- IMPORTANT: Lightweight Charts library (NOT tv.js) -->
+  <!-- Lightweight Charts library -->
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
   <style>
@@ -13,82 +13,79 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #020617; /* dark background */
+      background: #020617;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     #chart-container {
       width: 100%;
       max-width: 1000px;
-      height: 600px;         /* give the chart real height */
+      height: 600px;
       margin: 40px auto;
       background: #0b1120;
       border-radius: 12px;
       box-shadow: 0 15px 30px rgba(0,0,0,0.5);
     }
-
-    #chart {
-      width: 100%;
-      height: 100%;
-    }
   </style>
 </head>
 <body>
-  <div id="chart-container">
-    <div id="chart"></div>
-  </div>
+  <div id="chart-container"></div>
 
   <script>
-    // Get the container element
-    const chartElement = document.getElementById('chart');
+    // Run after DOM is ready
+    window.addEventListener('load', function () {
+      const container = document.getElementById('chart-container');
 
-    // Create the chart
-    const chart = LightweightCharts.createChart(chartElement, {
-      width: chartElement.clientWidth,
-      height: chartElement.clientHeight,
-      layout: {
-        background: { color: '#0b1120' },
-        textColor: '#e5e7eb',
-      },
-      grid: {
-        vertLines: { color: '#1f2937' },
-        horzLines: { color: '#1f2937' },
-      },
-      timeScale: {
-        borderColor: '#374151',
-      },
-      rightPriceScale: {
-        borderColor: '#374151',
-      },
-      crosshair: {
-        vertLine: { color: '#ef4444', width: 1 },
-        horzLine: { color: '#ef4444', width: 1 },
-      },
-    });
+      const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        layout: {
+          background: { color: '#0b1120' },
+          textColor: '#e5e7eb',
+        },
+        grid: {
+          vertLines: { color: '#1e293b' },
+          horzLines: { color: '#1e293b' },
+        },
+        rightPriceScale: {
+          borderColor: '#334155',
+        },
+        timeScale: {
+          borderColor: '#334155',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+      });
 
-    // Add candlestick series
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#16a34a',
-      downColor: '#ef4444',
-      borderVisible: false,
-      wickUpColor: '#16a34a',
-      wickDownColor: '#ef4444',
-    });
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
 
-    // Sample OHLC data – you’ll later replace this with real BTC data
-    candleSeries.setData([
-      { time: '2024-12-01', open: 38000, high: 39000, low: 37500, close: 38800 },
-      { time: '2024-12-02', open: 38800, high: 39500, low: 38200, close: 39200 },
-      { time: '2024-12-03', open: 39200, high: 39800, low: 39000, close: 39100 },
-      { time: '2024-12-04', open: 39100, high: 40000, low: 38900, close: 39950 },
-      { time: '2024-12-05', open: 39950, high: 40500, low: 39700, close: 40100 },
-    ]);
+      // Example OHLC data with time
+      // time can be 'YYYY-MM-DD' (business day string) or a unix timestamp
+      const data = [
+        { time: '2024-11-25', open: 38000, high: 38500, low: 37500, close: 38250 },
+        { time: '2024-11-26', open: 38250, high: 39000, low: 38000, close: 38800 },
+        { time: '2024-11-27', open: 38800, high: 39500, low: 38600, close: 39200 },
+        { time: '2024-11-28', open: 39200, high: 39800, low: 38900, close: 39550 },
+        { time: '2024-11-29', open: 39550, high: 40000, low: 39300, close: 39700 },
+        { time: '2024-11-30', open: 39700, high: 40300, low: 39400, close: 40150 },
+        { time: '2024-12-01', open: 40150, high: 40800, low: 39900, close: 40500 },
+      ];
 
-    // Make chart responsive
-    window.addEventListener('resize', () => {
-      chart.applyOptions({
-        width: chartElement.clientWidth,
-        height: chartElement.clientHeight,
+      candleSeries.setData(data);
+
+      // Make chart responsive
+      window.addEventListener('resize', () => {
+        chart.applyOptions({
+          width: container.clientWidth,
+          height: container.clientHeight,
+        });
       });
     });
   </script>
