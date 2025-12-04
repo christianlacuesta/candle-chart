@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Candlestick Chart</title>
+  <title>BTC Candlestick Chart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Lightweight Charts library -->
@@ -29,60 +29,66 @@
   </style>
 </head>
 <body>
+  <div style="color: white; padding: 8px; font-size: 14px;">
+    Candle Chart v3 (GitHub Pages test)
+  </div>
   <div id="chart-container"></div>
 
   <script>
-    // Run after DOM is ready
-    window.addEventListener('load', function () {
-      const container = document.getElementById('chart-container');
+    // Make sure the library is loaded
+    console.log("LightweightCharts in window:", typeof LightweightCharts);
 
-      const chart = LightweightCharts.createChart(container, {
+    window.addEventListener("load", function () {
+      const container = document.getElementById("chart-container");
+
+      // Important: do NOT name this variable just "chart" if you have some other "chart" in the page
+      const lcChart = LightweightCharts.createChart(container, {
         width: container.clientWidth,
         height: container.clientHeight,
         layout: {
-          background: { color: '#0b1120' },
-          textColor: '#e5e7eb',
+          background: { color: "#0b1120" },
+          textColor: "#e5e7eb",
         },
         grid: {
-          vertLines: { color: '#1e293b' },
-          horzLines: { color: '#1e293b' },
+          vertLines: { color: "#1e293b" },
+          horzLines: { color: "#1e293b" },
         },
         rightPriceScale: {
-          borderColor: '#334155',
+          borderColor: "#334155",
         },
         timeScale: {
-          borderColor: '#334155',
+          borderColor: "#334155",
           timeVisible: true,
           secondsVisible: false,
         },
       });
 
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: '#22c55e',
-        downColor: '#ef4444',
-        borderUpColor: '#22c55e',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#22c55e',
-        wickDownColor: '#ef4444',
+      // Now call addCandlestickSeries on lcChart (not on a DOM element)
+      const candleSeries = lcChart.addCandlestickSeries({
+        upColor: "#22c55e",
+        downColor: "#ef4444",
+        borderUpColor: "#22c55e",
+        borderDownColor: "#ef4444",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
       });
 
-      // Example OHLC data with time
-      // time can be 'YYYY-MM-DD' (business day string) or a unix timestamp
+      // Example static data
       const data = [
-        { time: '2024-11-25', open: 38000, high: 38500, low: 37500, close: 38250 },
-        { time: '2024-11-26', open: 38250, high: 39000, low: 38000, close: 38800 },
-        { time: '2024-11-27', open: 38800, high: 39500, low: 38600, close: 39200 },
-        { time: '2024-11-28', open: 39200, high: 39800, low: 38900, close: 39550 },
-        { time: '2024-11-29', open: 39550, high: 40000, low: 39300, close: 39700 },
-        { time: '2024-11-30', open: 39700, high: 40300, low: 39400, close: 40150 },
-        { time: '2024-12-01', open: 40150, high: 40800, low: 39900, close: 40500 },
+        { time: "2024-11-25", open: 38000, high: 38500, low: 37500, close: 38250 },
+        { time: "2024-11-26", open: 38250, high: 39000, low: 38000, close: 38800 },
+        { time: "2024-11-27", open: 38800, high: 39500, low: 38600, close: 39200 },
+        { time: "2024-11-28", open: 39200, high: 39800, low: 38900, close: 39550 },
+        { time: "2024-11-29", open: 39550, high: 40000, low: 39300, close: 39700 },
+        { time: "2024-11-30", open: 39700, high: 40300, low: 39400, close: 40150 },
+        { time: "2024-12-01", open: 40150, high: 40800, low: 39900, close: 40500 },
       ];
 
       candleSeries.setData(data);
 
-      // Make chart responsive
-      window.addEventListener('resize', () => {
-        chart.applyOptions({
+      // Responsive resize
+      window.addEventListener("resize", function () {
+        lcChart.applyOptions({
           width: container.clientWidth,
           height: container.clientHeight,
         });
@@ -91,4 +97,3 @@
   </script>
 </body>
 </html>
-
