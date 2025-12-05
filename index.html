@@ -53,15 +53,15 @@
           return;
         }
 
-        // 👉 Keep only the last 7 candles
-        const last7 = data.slice(-60);
+        // Keep only the last 60 candles
+        const last60 = data.slice(-60);
 
-        // Convert API JSON to arrays for Plotly (using only last 7)
-        const times  = last7.map(d => new Date(d.time));
-        const opens  = last7.map(d => d.open);
-        const highs  = last7.map(d => d.high);
-        const lows   = last7.map(d => d.low);
-        const closes = last7.map(d => d.close);
+        // Convert API JSON to arrays for Plotly (using only last 60)
+        const times  = last60.map(d => new Date(d.time));
+        const opens  = last60.map(d => d.open);
+        const highs  = last60.map(d => d.high);
+        const lows   = last60.map(d => d.low);
+        const closes = last60.map(d => d.close);
 
         const trace = {
           x: times,
