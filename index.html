@@ -1,89 +1,135 @@
-import datetime
-import requests
-from google.cloud import bigquery
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTC Candles – BigQuery Live</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-PROJECT_ID = "bitcoin-480204"
-DATASET = "crypto"
-TABLE = "btc_ohlc_1m"
+  <!-- Plotly.js for candlestick chart -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
-SYMBOL = "BTC-USD"  # Coinbase product id
-GRANULARITY = 60    # 60 seconds = 1 minute
-LIMIT = 120         # how many recent candles
+  <style>
+    body {
+      background:#020617;
+      margin:0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:#e5e7eb;
+    }
+    .header {
+      max-width:1000px;
+      margin:20px auto 0;
+      padding:8px 16px;
+      font-size:14px;
+    }
+    #chart {
+      width:100%;
+      max-width:1000px;
+      height:600px;
+      margin:10px auto 40px;
+    }
+  </style>
+</head>
 
+<body>
+  <div class="header">
+    BTC Candlestick Chart – BigQuery → Cloud Run → GitHub Pages
+    <span id="last-updated" style="opacity:.8; margin-left:8px;"></span>
+  </div>
+  <div id="chart"></div>
 
-def fetch_coinbase():
-    url = f"https://api.exchange.coinbase.com/products/{SYMBOL}/candles"
-    params = {"granularity": GRANULARITY}
-    headers = {
-        "Accept": "application/json",
-        "User-Agent": "coinbase-ohlc-loader/1.0"
+  <script>
+    // 🔗 Your Cloud Run function URL
+    const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app"; // <-- put YOUR URL here
+
+    let chartInitialized = false;
+
+    async function loadCandles() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn("No data from API");
+          return;
+        }
+
+        // 👉 Keep only the last 7 candles
+        const last7 = data.slice(-7);
+
+        // Convert API JSON to arrays for Plotly (using only last 7)
+        const times  = last7.map(d => new Date(d.time));
+        const opens  = last7.map(d => d.open);
+        const highs  = last7.map(d => d.high);
+        const lows   = last7.map(d => d.low);
+        const closes = last7.map(d => d.close);
+
+        const trace = {
+          x: times,
+          open: opens,
+          high: highs,
+          low: lows,
+          close: closes,
+          type: "candlestick",
+          increasing: { line: { color: "#22c55e" } },
+          decreasing: { line: { color: "#ef4444" } },
+          name: "BTC"
+        };
+
+        const layout = {
+          paper_bgcolor:"#020617",
+          plot_bgcolor:"#020617",
+          xaxis:{
+            title:"Time (HH:MM)",
+            tickformat:"%H:%M",   // 👉 military time, no seconds
+            rangeslider:{ visible:false },
+            tickfont:{ color:"#e5e7eb" },
+            gridcolor:"#1e293b"
+          },
+          yaxis:{
+            title:"Price",
+            tickfont:{ color:"#e5e7eb" },
+            gridcolor:"#1e293b"
+          },
+          margin:{ l:60, r:20, t:40, b:40 },
+          showlegend:false
+        };
+
+        const config = { responsive:true, displaylogo:false };
+
+        if (!chartInitialized) {
+          Plotly.newPlot("chart", [trace], layout, config);
+          chartInitialized = true;
+        } else {
+          // Update without recreating the chart
+          Plotly.react("chart", [trace], layout, config);
+        }
+
+        // Update "last update" label: DATE + HH:MM
+        const last = times[times.length - 1];
+        const formattedDate =
+          last.toLocaleDateString("en-GB", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          }) +
+          " " +
+          last.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+
+        document.getElementById("last-updated").textContent =
+          `· last update: ${formattedDate}`;
+      } catch (err) {
+        console.error("Error loading candles:", err);
+      }
     }
 
-    r = requests.get(url, params=params, headers=headers, timeout=10)
-    print("Coinbase status:", r.status_code)
-    print("Coinbase url:", r.url)
-    r.raise_for_status()
-    raw = r.json()
+    // Initial load
+    loadCandles();
 
-    # raw: [ [ time, low, high, open, close, volume ], ... ]
-    rows = []
-    for c in raw[:LIMIT]:
-        ts = datetime.datetime.utcfromtimestamp(c[0]).replace(
-            tzinfo=datetime.timezone.utc
-        )
-        low, high, open_, close, volume = map(float, c[1:6])
-
-        rows.append({
-            "ts": ts.isoformat(),
-            "symbol": SYMBOL,
-            "open": open_,
-            "high": high,
-            "low":  low,
-            "close": close,
-            "volume": volume,
-        })
-
-    rows.sort(key=lambda r: r["ts"])
-    return rows
-
-
-def replace_bigquery_table(rows):
-    client = bigquery.Client(project=PROJECT_ID)
-    table_id = f"{PROJECT_ID}.{DATASET}.{TABLE}"
-
-    # 🔁 Use LOAD job with WRITE_TRUNCATE instead of DELETE + streaming insert
-    job_config = bigquery.LoadJobConfig(
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
-    )
-
-    print(f"Loading {len(rows)} rows into {table_id} with WRITE_TRUNCATE...")
-    load_job = client.load_table_from_json(
-        rows,
-        table_id,
-        job_config=job_config,
-    )
-    load_job.result()  # wait for job to finish
-
-    print("Load job state:", load_job.state)
-    print("Output rows:", load_job.output_rows)
-
-
-def main(request=None):
-    try:
-        print("Fetching Coinbase candles…")
-        rows = fetch_coinbase()
-        print("Fetched", len(rows), "rows")
-
-        print("Replacing BigQuery table via LOAD job…")
-        replace_bigquery_table(rows)
-
-        print("Done successfully.")
-        return "Done", 200
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return str(e), 500
-
-
-if __name__ == "__main__":
-    main()
+    // Refresh every 1 minute (60,000 ms)
+    setInterval(loadCandles, 60_000);
+  </script>
+</body>
+</html>
