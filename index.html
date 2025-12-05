@@ -39,7 +39,7 @@
 
   <script>
     // 🔗 Your Cloud Run function URL
-    const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app/"; // <-- put YOUR URL here
+    const API_URL = "https://getcandles-702357866222.northamerica-northeast1.run.app/"; 
 
     let chartInitialized = false;
 
@@ -54,7 +54,7 @@
         }
 
         // 👉 Keep only the last 7 candles
-        const last7 = data.slice(-7);
+        const last7 = data.slice(-60);
 
         // Convert API JSON to arrays for Plotly (using only last 7)
         const times  = last7.map(d => new Date(d.time));
@@ -80,7 +80,7 @@
           plot_bgcolor:"#020617",
           xaxis:{
             title:"Time (HH:MM)",
-            tickformat:"%H:%M",   // 👉 military time, no seconds
+            tickformat:"%H:%M",   // military time, no seconds
             rangeslider:{ visible:false },
             tickfont:{ color:"#e5e7eb" },
             gridcolor:"#1e293b"
