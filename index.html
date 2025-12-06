@@ -65,10 +65,10 @@
 
         lastCandleTime = times[times.length - 1];
 
-        // Create "current" timestamp 1 min ahead of last candle
+        // timestamp for "current" = 1 minute after last candle
         const nextTime = new Date(lastCandleTime.getTime() + 60 * 1000);
 
-        // Build X-axis ticks including "current"
+        // axis ticks including "current"
         const xTickVals = [...times, nextTime];
         const xTickTexts = [
           ...times.map(t =>
@@ -90,13 +90,13 @@
           name: "BTC"
         };
 
-        // LIVE PRICE TRACE (initial placeholder)
+        // LIVE PRICE TRACE (placeholder, updated by WS)
         const liveTrace = {
           x: [nextTime],
           y: [closes[closes.length - 1]],
           text: [`$${closes[closes.length - 1].toLocaleString()}`],
           textposition: "top center",
-          textfont: { color: "#ffffff", size: 12 },  // WHITE FONT
+          textfont: { color: "#ffffff", size: 12 },
           mode: "markers+text",
           marker: { size: 9, color: "#eab308" },
           name: "Live",
@@ -108,6 +108,7 @@
           plot_bgcolor:"#020617",
           xaxis: {
             title: "Last 60 minutes + current",
+            tickmode: "array",
             tickvals: xTickVals,
             ticktext: xTickTexts,
             tickangle: -45,
@@ -127,9 +128,11 @@
         const config = { responsive:true, displaylogo:false };
 
         if (!chartInitialized) {
+          // first render
           Plotly.newPlot("chart", [candleTrace, liveTrace], layout, config);
           chartInitialized = true;
         } else {
+          // update candles (trace 0)
           Plotly.update(
             "chart",
             {
@@ -142,25 +145,57 @@
             {},
             [0]
           );
+
+          // move live placeholder to new "current" position (trace 1)
+          Plotly.update(
+            "chart",
+            {
+              x: [[nextTime]],
+              y: [[closes[closes.length - 1]]],
+              text: [[`$${closes[closes.length - 1].toLocaleString()}`]]
+            },
+            {},
+            [1]
+          );
+
+          // update axis ticks so window + "current" slide
+          Plotly.relayout("chart", {
+            "xaxis.tickvals": xTickVals,
+            "xaxis.ticktext": xTickTexts
+          });
         }
 
         // HEADER TIME DISPLAY
         const first = times[0];
         const last = times[times.length - 1];
 
+        const startStr = first.toLocaleTimeString("en-GB",{
+          hour:"2-digit",
+          minute:"2-digit"
+        });
+        const endStr = last.toLocaleTimeString("en-GB",{
+          hour:"2-digit",
+          minute:"2-digit"
+        });
+
         document.getElementById("timeframe").textContent =
-          `· window: ${first.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
-            – ${last.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} (60m)`;
+          `· window: ${startStr} – ${endStr} (60m)`;
+
+        const dateFmt = last.toLocaleDateString("en-GB",{
+          year:"numeric",
+          month:"short",
+          day:"numeric"
+        });
+        const timeFmt = endStr;
 
         document.getElementById("last-updated").textContent =
-          `· last update: ${last.toLocaleDateString("en-GB",{year:"numeric",month:"short",day:"numeric"})}
-                         ${last.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;
-
+          `· last update: ${dateFmt} ${timeFmt}`;
       } catch (err) {
         console.error("Error loading candles:", err);
       }
     }
 
+    // initial load + refresh every minute
     loadCandles();
     setInterval(loadCandles, 60000);
 
@@ -182,10 +217,14 @@
           x: [[nextTime]],
           y: [[price]],
           text: [[`$${price.toLocaleString()}`]],
-          textfont: [{ color: "#ffffff", size: 12 }]   // KEEP WHITE ON UPDATE
+          textfont: [{ color: "#ffffff", size: 12 }]
         },
         [1]
       );
+    };
+
+    ws.onerror = (e) => {
+      console.error("WebSocket error:", e);
     };
   </script>
 </body>
