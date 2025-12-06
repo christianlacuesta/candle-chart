@@ -50,6 +50,7 @@
       "https://getcandles-702357866222.northamerica-northeast1.run.app/";
 
     let chartInitialized = false;
+    let lastCandleTime = null; // for live point placement
 
     async function loadCandles() {
       try {
@@ -67,13 +68,16 @@
         const lows   = last60.map(d => d.low);
         const closes = last60.map(d => d.close);
 
+        // Save last candle time for live point placement
+        lastCandleTime = times[times.length - 1];
+
         // 👉 FORCE EXACT 60 TICKS ON X-AXIS
-        const xTickVals = times;  
+        const xTickVals = times;
         const xTickTexts = times.map(t =>
           t.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
         );
 
-        const trace = {
+        const candleTrace = {
           x: times,
           open: opens,
           high: highs,
@@ -83,6 +87,16 @@
           increasing: { line: { color: "#22c55e" } },
           decreasing: { line: { color: "#ef4444" } },
           name: "BTC"
+        };
+
+        // Live price point (placeholder – updated via WebSocket)
+        const liveTrace = {
+          x: lastCandleTime ? [new Date(lastCandleTime.getTime() + 60 * 1000)] : [],
+          y: lastCandleTime ? [closes[closes.length - 1]] : [],
+          mode: "markers",
+          marker: { size: 8, color: "#eab308" }, // gold-ish
+          name: "Live price",
+          showlegend: false
         };
 
         const layout = {
@@ -115,10 +129,22 @@
         };
 
         if (!chartInitialized) {
-          Plotly.newPlot("chart", [trace], layout, config);
+          Plotly.newPlot("chart", [candleTrace, liveTrace], layout, config);
           chartInitialized = true;
         } else {
-          Plotly.react("chart", [trace], layout, config);
+          // Update only the candlestick trace (trace index 0)
+          Plotly.update(
+            "chart",
+            {
+              x: [times],
+              open: [opens],
+              high: [highs],
+              low: [lows],
+              close: [closes]
+            },
+            {},
+            [0]
+          );
         }
 
         // 👉 TIMEFRAME DISPLAY
@@ -138,15 +164,45 @@
           last.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 
         document.getElementById("last-updated").textContent =
-          `· last update: ${dateFmt} ${timeFmt}`;
-
+          `· last update: ${dateFmt ${timeFmt}`;
       } catch (err) {
         console.error("Error loading candles:", err);
       }
     }
 
+    // Initial load + refresh every 60 seconds
     loadCandles();
     setInterval(loadCandles, 60000);
+
+    // 👉 LIVE PRICE STREAM (Binance WebSocket)
+    const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const price = parseFloat(data.p);
+        if (!Number.isFinite(price) || !lastCandleTime) return;
+
+        // Place live point 1 minute after the last candle
+        const liveX = new Date(lastCandleTime.getTime() + 60 * 1000);
+
+        // Update trace index 1 (live price)
+        Plotly.restyle(
+          "chart",
+          {
+            x: [[liveX]],
+            y: [[price]]
+          },
+          [1]
+        );
+      } catch (e) {
+        console.error("WS parse error:", e);
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.error("WebSocket error:", e);
+    };
   </script>
 </body>
 </html>
